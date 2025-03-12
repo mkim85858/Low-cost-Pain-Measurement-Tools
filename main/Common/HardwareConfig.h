@@ -7,8 +7,8 @@
 ********************************************************************************
 */
 /* Insert #define here */
-#define LPS28_I2C_SDA               GPIO_NUM_21
-#define LPS28_I2C_SCL               GPIO_NUM_22
+#define LPS28_I2C_SDA               GPIO_NUM_21 // blue
+#define LPS28_I2C_SCL               GPIO_NUM_22 // yellow
     
 /*
 *
