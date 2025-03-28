@@ -53,13 +53,14 @@
 
 void app_main(void) {
     I2C_Init();
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    Sensor_Init();
     INT8U buf[3] = {0x00, 0x00, 0x00};
     Sensor_ReadPressure(buf);
     ESP_LOGI("MAIN", "0x%02x", buf[0]);
     ESP_LOGI("MAIN", "0x%02x", buf[1]);
     ESP_LOGI("MAIN", "0x%02x", buf[2]);
-    while (1) {
-        
-    }
+    int total = (buf[0] << 16) | (buf[1] << 8) | buf[2];
+    total /= 4096;
+    ESP_LOGI("MAIN", "Current atmospheric pressure is %d!", total);
+    ESP_LOGI("MAIN", "task finished...");
 }

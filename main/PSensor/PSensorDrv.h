@@ -29,5 +29,6 @@
 */
 /* Insert global function prototypes here */
 extern void I2C_Init(void);
+extern void Sensor_Init(void);
 extern void Sensor_ReadPressure(INT8U *buf);
 #endif

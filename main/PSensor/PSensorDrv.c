@@ -5,6 +5,7 @@
 */
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
+#include "esp_log.h"
 
 #include "Globals.h"
 #include "HardwareConfig.h"
@@ -26,10 +27,13 @@
 #define I2C_MASTER_RX_BUF_DISABLE           0
 #define I2C_MASTER_TIMEOUT_MS               1000
 
-#define I2C_DEVICE_ADDRESS                  0xB8
+#define I2C_DEVICE_ADDRESS                  0x5D
+#define I2C_DEVICE_CTRLREG1                 0x10
 #define I2C_DEVICE_HREG                     0x2A
 #define I2C_DEVICE_LREG                     0x29
 #define I2C_DEVICE_XLREG                    0x28
+
+#define I2C_DEVICE_DATARATE                 0x18
 /*
 ********************************************************************************
 *                       LOCAL DATA TYPES & STRUCTURES
@@ -47,8 +51,8 @@
 *                       LOCAL FUNCTION PROTOTYPES
 ********************************************************************************
 */
-static INT8U Sensor_readReg(INT8U reg);
-
+static int Sensor_readReg(INT8U reg);
+static void Sensor_writeReg(INT8U data, INT8U reg);
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) FUNCTIONS
@@ -78,6 +82,18 @@ void I2C_Init(void) {
 
 /**
 ********************************************************************************
+* @brief    Sensor Init
+* @param    none
+* @return   none
+* @remark   Used initialize settings for sensor
+********************************************************************************
+*/
+void Sensor_Init(void) {
+    Sensor_writeReg(I2C_DEVICE_DATARATE, I2C_DEVICE_CTRLREG1);
+}
+
+/**
+********************************************************************************
 * @brief    Sensor Read Pressure
 * @param    buf = buffer to hold received data
 * @return   none
@@ -97,25 +113,32 @@ void Sensor_ReadPressure(INT8U *buf) {
 */
 /* Insert local functions here */
 
-// reading a specific register from the sensor
-INT8U Sensor_readReg(INT8U reg) {
+// reading from a specific register from the sensor
+int Sensor_readReg(INT8U reg) {
+    INT8U data = 0;
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    INT8U buf = 0;
     i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (INT8U)(I2C_DEVICE_ADDRESS << 1), true);
-    i2c_master_read_byte(cmd, &buf, true);
-    // check if buf is SAK
+    i2c_master_write_byte(cmd, (I2C_DEVICE_ADDRESS << 1) | I2C_MASTER_WRITE, true);
     i2c_master_write_byte(cmd, reg, true);
-    i2c_master_read_byte(cmd, &buf, true);
-    // check if buf is SAK
     i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (INT8U)(I2C_DEVICE_ADDRESS << 1) + 1, true);
-    i2c_master_read_byte(cmd, &buf, true);
-    // check if buf is SAK
-    i2c_master_read_byte(cmd, &buf, true);
-    i2c_master_write_byte(cmd, I2C_MASTER_NACK, true);
+    i2c_master_write_byte(cmd, (I2C_DEVICE_ADDRESS << 1) | I2C_MASTER_READ, true);
+    i2c_master_read_byte(cmd, &data, I2C_MASTER_LAST_NACK);
     i2c_master_stop(cmd);
     
-    i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, I2C_MASTER_TIMEOUT_MS/ portTICK_PERIOD_MS);
-    return buf;
+    i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(1000));
+    i2c_cmd_link_delete(cmd);
+    return data;
+}
+
+// writing to a specific register from the sensor
+void Sensor_writeReg(INT8U data, INT8U reg) {
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (I2C_DEVICE_ADDRESS << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, reg, true);
+    i2c_master_write_byte(cmd, data, true);
+    i2c_master_stop(cmd);
+    
+    i2c_master_cmd_begin(I2C_MASTER_PORT, cmd, pdMS_TO_TICKS(1000));
+    i2c_cmd_link_delete(cmd);
 }
