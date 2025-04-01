@@ -1,5 +1,5 @@
-#ifndef _PSENSOR_DRV_H
-#define _PSENSOR_DRV_H
+#ifndef _I2C_DRV_H
+#define _I2C_DRV_H
 
 #include "Globals.h"
 
@@ -28,6 +28,5 @@
 ********************************************************************************
 */
 /* Insert global function prototypes here */
-extern void Sensor_Init(void);
-extern INT16U Sensor_ReadPressure(void);
+extern void I2C_Init(void);
 #endif

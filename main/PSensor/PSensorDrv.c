@@ -23,9 +23,6 @@
 */
 /* Insert #define here */
 #define I2C_MASTER_PORT                     I2C_NUM_0
-#define I2C_MASTER_TX_BUF_DISABLE           0
-#define I2C_MASTER_RX_BUF_DISABLE           0
-#define I2C_MASTER_TIMEOUT_MS               1000
 
 #define I2C_DEVICE_ADDRESS                  0x5D
 #define I2C_DEVICE_CTRLREG1                 0x10
@@ -61,27 +58,6 @@ static void Sensor_writeReg(INT8U data, INT8U reg);
 /* Insert global functions here */
 /**
 ********************************************************************************
-* @brief    I2C Init
-* @param    none
-* @return   none
-* @remark   Used for initializing I2C at startup
-********************************************************************************
-*/
-void I2C_Init(void) {
-    i2c_config_t i2cconf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = LPS28_I2C_SDA,
-        .scl_io_num = LPS28_I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 100000,
-    };
-    i2c_param_config(I2C_MASTER_PORT, &i2cconf);
-    i2c_driver_install(I2C_MASTER_PORT, i2cconf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-}
-
-/**
-********************************************************************************
 * @brief    Sensor Init
 * @param    none
 * @return   none
@@ -95,15 +71,18 @@ void Sensor_Init(void) {
 /**
 ********************************************************************************
 * @brief    Sensor Read Pressure
-* @param    buf = buffer to hold received data
-* @return   none
+* @param    none
+* @return   pressure value in hPA
 * @remark   Used to read pressure data from sensor
 ********************************************************************************
 */
-void Sensor_ReadPressure(INT8U *buf) {
-    buf[0] = Sensor_readReg(I2C_DEVICE_HREG);
-    buf[1] = Sensor_readReg(I2C_DEVICE_LREG);
-    buf[2] = Sensor_readReg(I2C_DEVICE_XLREG);
+INT16U Sensor_ReadPressure(void) {
+    INT32U total = 0;
+    total |= Sensor_readReg(I2C_DEVICE_HREG) << 16;
+    total |= Sensor_readReg(I2C_DEVICE_LREG) << 8;
+    total |= Sensor_readReg(I2C_DEVICE_XLREG);
+    total /= 4096;
+    return total;
 }
 
 /*
