@@ -31,5 +31,5 @@
 extern void LCD_Init(void);
 extern void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type);
 extern void LCD_ClearPage(INT8U page);
-extern void LCD_ClearScreen();
+extern void LCD_ClearScreen(void);
 #endif

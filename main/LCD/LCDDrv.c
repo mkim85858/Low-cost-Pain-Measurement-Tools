@@ -76,7 +76,14 @@ static void LCD_setCoord(INT8U page, INT8U col);
 ********************************************************************************
 */
 /* Insert global functions here */
-
+/**
+********************************************************************************
+* @brief    LCD Init
+* @param    none
+* @return   none
+* @remark   Used to send initial commands to LCD
+********************************************************************************
+*/
 void LCD_Init(void) {
     INT8U cmd[20] = {I2C_DEVICE_MULTIPLEX_RATIO, 0x3F, 
                      I2C_DEVICE_DISPLAY_OFFSET, 0x00, 
@@ -94,7 +101,16 @@ void LCD_Init(void) {
     LCD_writeCommand(cmd, 20);
     LCD_ClearScreen();
 }
-
+/**
+********************************************************************************
+* @brief    LCD Write Progress Bar
+* @param    page : page to write progress bar (row)
+            column : column to write progress bar
+            type : if 1, write full bar, if 0, write blank bar
+* @return   none
+* @remark   Used to write a full or blank progress bar
+********************************************************************************
+*/
 void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
     INT8U imgBuffer[24] = {0};
     for (INT16U i = 0; i < 24; i++) {
@@ -110,15 +126,29 @@ void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
         LCD_writeData(&imgBuffer[12 * i], 12);
     }
 }
-
+/**
+********************************************************************************
+* @brief    LCD Clear Page
+* @param    page : page (row) to clear
+* @return   none
+* @remark   Used to clear a page on the LCD
+********************************************************************************
+*/
 void LCD_ClearPage(INT8U page) {
     INT8U buffer[128] = {0};
     INT8U cmd[] = {0x00, 0x10, 0xB0 + page};
     LCD_writeCommand(cmd, 3);
     LCD_writeData(buffer, 128);
 }
-
-void LCD_ClearScreen() {
+/**
+********************************************************************************
+* @brief    LCD Clear Screen
+* @param    none
+* @return   none
+* @remark   Used to clear the entire screen on the LCD
+********************************************************************************
+*/
+void LCD_ClearScreen(void) {
     INT8U buffer[128] = {0};
     for (INT8U i = 0; i < 8; i++) {
         INT8U cmd[] = {0x00, 0x10, 0xB0 + i};
