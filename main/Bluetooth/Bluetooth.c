@@ -7,7 +7,6 @@
 
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
-#include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
@@ -44,6 +43,7 @@
 */
 /* Insert file scope variable & tables here */
 static BOOLEAN is_connected = false;
+static SemaphoreHandle_t semaphoreHandle = NULL;
 /*
 ********************************************************************************
 *                       LOCAL FUNCTION PROTOTYPES
@@ -81,6 +81,7 @@ void Bluetooth_Init(void) {
     ESP_ERROR_CHECK(esp_bluedroid_init());
     ESP_ERROR_CHECK(esp_bluedroid_enable());
 
+    semaphoreHandle = xSemaphoreCreateBinary();
     ESP_ERROR_CHECK(esp_spp_register_callback(Bluetooth_sppcb));
 
     esp_spp_cfg_t bt_spp_cfg = {
@@ -89,6 +90,8 @@ void Bluetooth_Init(void) {
         .tx_buffer_size = 0
     };
     ESP_ERROR_CHECK(esp_spp_enhanced_init(&bt_spp_cfg));
+
+    xSemaphoreTake(semaphoreHandle, portMAX_DELAY);
 }
 /**
 ********************************************************************************
@@ -99,21 +102,28 @@ void Bluetooth_Init(void) {
 * @remark   Used to initialize bluetooth
 ********************************************************************************
 */
-void Bluetooth_SendToPC(INT16U *data, INT16U len) {
+void Bluetooth_SendToPC(INT8U *data, INT16U len) {
     // Check if there's an active connection
     if (is_connected) {
-        ESP_LOGI(SPP_TAG, "Sending data to PC...");
-        esp_err_t ret = esp_spp_write(129, len, data);
-        if (ret == ESP_OK) {
-            ESP_LOGI(SPP_TAG, "Data sent successfully");
-        } 
-        else {
-            ESP_LOGE(SPP_TAG, "Failed to send data, error: %d", ret);
-        }
+        esp_spp_write(129, len, data);
     } 
-    else {
-        ESP_LOGW(SPP_TAG, "No active connection, can't send data");
-    }
+}
+
+/**
+********************************************************************************
+* @brief    Bluetooth Send Pressure and Time
+* @param    pressure : pressure read from barometer
+            time : time pressure was read
+* @return   none
+* @remark   Used to send both pressure and time to PC
+********************************************************************************
+*/
+void Bluetooth_SendPressureTime(INT16U pressure, INT8U time) {
+    INT8U data1 = (pressure >> 8) & 0xFF;
+    INT8U data2 = (pressure & 0xFF);
+    Bluetooth_SendToPC(&data1, sizeof(data1));
+    Bluetooth_SendToPC(&data2, sizeof(data2));
+    Bluetooth_SendToPC(&time, sizeof(time));
 }
 /*
 ********************************************************************************
@@ -125,28 +135,25 @@ void Bluetooth_SendToPC(INT16U *data, INT16U len) {
 static void Bluetooth_sppcb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     switch (event) {
         case ESP_SPP_INIT_EVT:
-            ESP_LOGI(SPP_TAG, "ESP_SPP_INIT_EVT");
             esp_bt_gap_set_device_name(DEVICE_NAME);
             esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
             esp_spp_start_srv(ESP_SPP_SEC_NONE, ESP_SPP_ROLE_SLAVE, 0, "SPP_SERVER");
             break;
 
         case ESP_SPP_START_EVT:
-            ESP_LOGI(SPP_TAG, "ESP_SPP_START_EVT");
             break;
 
         case ESP_SPP_DATA_IND_EVT:
-            ESP_LOGI(SPP_TAG, "Received data:");
-            ESP_LOG_BUFFER_HEXDUMP(SPP_TAG, param->data_ind.data, param->data_ind.len, ESP_LOG_INFO);
             break;
 
         case ESP_SPP_SRV_OPEN_EVT:
             is_connected = true;
-            ESP_LOGI(SPP_TAG, "Client connected");
+            if (semaphoreHandle) {
+                xSemaphoreGive(semaphoreHandle);
+            }
             break;
         case ESP_SPP_CLOSE_EVT:
             is_connected = false;
-            ESP_LOGI(SPP_TAG, "Client disconnected");
             break;
         default:
             break;

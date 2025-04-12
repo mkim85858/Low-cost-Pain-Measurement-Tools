@@ -3,6 +3,7 @@ set(srcs "main.c"
     "PSensor/PSensorDrv.c"
     "LCD/LCDDrv.c"
     "Bluetooth/Bluetooth.c"
+    "Button/ButtonDrv.c"
     )
 
 idf_component_register(SRCS ${srcs}

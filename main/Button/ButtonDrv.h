@@ -1,5 +1,7 @@
-#ifndef _HARDWARE_CONFIG_H
-#define _HARDWARE_CONFIG_H
+#ifndef _BUTTON_DRV_H
+#define _BUTTON_DRV_H
+
+#include "Globals.h"
 
 /*
 ********************************************************************************
@@ -7,13 +9,7 @@
 ********************************************************************************
 */
 /* Insert #define here */
-#define LPS28_I2C_SDA               GPIO_NUM_21 // blue
-#define LPS28_I2C_SCL               GPIO_NUM_22 // yellow
-
-#define BUTTON_PIN                  GPIO_NUM_25
-    
 /*
-*
 ********************************************************************************
 *                       GLOBAL DATA TYPES & STRUCTURES
 ********************************************************************************
@@ -25,13 +21,11 @@
 ********************************************************************************
 */
 /* Insert global variable externals here */
-
-
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) FUNCTION PROTOTYPES
 ********************************************************************************
 */
 /* Insert global function prototypes here */
-
+extern void Button_Init(gpio_isr_t isr);
 #endif

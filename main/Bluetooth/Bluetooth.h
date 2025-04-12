@@ -29,5 +29,6 @@
 */
 /* Insert global function prototypes here */
 extern void Bluetooth_Init(void);
-extern void Bluetooth_SendToPC(INT16U *data, INT16U len);
+extern void Bluetooth_SendToPC(INT8U *data, INT16U len);
+extern void Bluetooth_SendPressureTime(INT16U pressure, INT8U time);
 #endif

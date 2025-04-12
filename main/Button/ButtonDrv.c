@@ -3,12 +3,15 @@
 *                       INCLUDES
 ********************************************************************************
 */
-#include "driver/i2c.h"
+#include <stdio.h>
+
+#include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "Globals.h"
 #include "HardwareConfig.h"
-#include "I2CDrv.h"
+#include "ButtonDrv.h"
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) VARIABLES & TABLES
@@ -21,9 +24,6 @@
 ********************************************************************************
 */
 /* Insert #define here */
-#define I2C_MASTER_PORT                     I2C_NUM_0
-#define I2C_MASTER_TX_BUF_DISABLE           0
-#define I2C_MASTER_RX_BUF_DISABLE           0
 /*
 ********************************************************************************
 *                       LOCAL DATA TYPES & STRUCTURES
@@ -41,6 +41,7 @@
 *                       LOCAL FUNCTION PROTOTYPES
 ********************************************************************************
 */
+/* Insert static function prototypes here */
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) FUNCTIONS
@@ -49,23 +50,26 @@
 /* Insert global functions here */
 /**
 ********************************************************************************
-* @brief    I2C Init
-* @param    none
+* @brief    Button Init
+* @param    isr = interrupt service routine to add
 * @return   none
-* @remark   Used for initializing I2C at startup
+* @remark   Used for initializing button during startup
 ********************************************************************************
 */
-void I2C_Init(void) {
-    i2c_config_t i2cconf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = LPS28_I2C_SDA,
-        .scl_io_num = LPS28_I2C_SCL,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 100000,
+void Button_Init(gpio_isr_t isr) {
+    // Configuring button pin
+    gpio_config_t buttoncfg = {
+        .pin_bit_mask = (1ULL << BUTTON_PIN),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_NEGEDGE,
     };
-    i2c_param_config(I2C_MASTER_PORT, &i2cconf);
-    i2c_driver_install(I2C_MASTER_PORT, i2cconf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    gpio_config(&buttoncfg);
+
+    // Initializing interrupts
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_PIN, isr, NULL);
 }
 /*
 ********************************************************************************

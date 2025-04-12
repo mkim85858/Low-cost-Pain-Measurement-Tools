@@ -5,7 +5,6 @@
 */
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
-#include "esp_log.h"
 
 #include "Globals.h"
 #include "HardwareConfig.h"

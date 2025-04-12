@@ -5,11 +5,11 @@
 */
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
-#include "esp_log.h"
 
 #include "Globals.h"
 #include "HardwareConfig.h"
 #include "LCDDrv.h"
+#include "Fonts.h"
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) VARIABLES & TABLES
@@ -53,15 +53,6 @@
 ********************************************************************************
 */
 /* Insert file scope variable & tables here */
-static const INT8U progressBar[] = {
-    0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-	0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-};
-
-static const INT8U blankBar[] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
 /*
 ********************************************************************************
 *                       LOCAL FUNCTION PROTOTYPES
@@ -99,7 +90,75 @@ void LCD_Init(void) {
                      I2C_DEVICE_CHARGE_BUMP, 0x14,
                      I2C_DEVICE_DISPLAY_ON};
     LCD_writeCommand(cmd, 20);
+    vTaskDelay(pdMS_TO_TICKS(10));
     LCD_ClearScreen();
+    vTaskDelay(pdMS_TO_TICKS(10));
+    LCD_WriteStr("WAITING", 0, 22);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    LCD_WriteStr("FOR", 2, 46);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    LCD_WriteStr("CONNECTION", 4, 0);
+}
+/**
+********************************************************************************
+* @brief    LCD Write Character
+* @param    charCode : character to write
+            page : page to write character
+            column : column to write character
+* @return   none
+* @remark   Used to write a single character to LCD
+********************************************************************************
+*/
+void LCD_WriteChar(INT8U charCode, INT8U page, INT16U column) {
+    INT8U charBuffer[24] = {0};
+    for (INT8U i = 0; i < 24; i++) {
+        charBuffer[i] = Font[(charCode - 32) * 24 + i];
+    }
+    for (INT8U i = 0; i < 2; i++) {
+        LCD_setCoord(page + i, column);
+        LCD_writeData(&charBuffer[12 * i], 12);
+    }
+}
+/**
+********************************************************************************
+* @brief    LCD Write Character
+* @param    str : pointer to characters to write
+            page : page to write string
+            column : column to write string
+* @return   none
+* @remark   Used to write a single character to LCD
+********************************************************************************
+*/
+void LCD_WriteStr(char *str, INT8U page, INT8U column) {
+    while(*str) {
+            if (127 < (column + 12)) {
+            if (page == 6) break;
+            page += 2;
+            column = 0;
+        }
+        LCD_WriteChar(*str, page, column);
+        column += 12;
+        str++;
+    }
+}
+/**
+********************************************************************************
+* @brief    LCD Write Logo
+* @param    none
+* @return   none
+* @remark   Used to write Georgia Tech's logo
+********************************************************************************
+*/
+void LCD_WriteLogo(void) 
+{
+    INT8U ImgBuffer[1024] = {0};
+    for (INT16U i = 0; i < 1024; i++) {
+        ImgBuffer[i] = GTLogo[i];
+    }
+    for (INT8U i = 0; i < 8; i++) {
+        LCD_setCoord(0 + i, 0);
+        LCD_writeData(&ImgBuffer[128 * i], 128);
+    }
 }
 /**
 ********************************************************************************
@@ -112,16 +171,16 @@ void LCD_Init(void) {
 ********************************************************************************
 */
 void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
-    INT8U imgBuffer[24] = {0};
-    for (INT16U i = 0; i < 24; i++) {
+    INT8U imgBuffer[72] = {0};
+    for (INT16U i = 0; i < 72; i++) {
         if (type) {
-            imgBuffer[i] = progressBar[i];
+            imgBuffer[i] = ProgressBar[i];
         }
         else {
-            imgBuffer[i] = blankBar[i];
+            imgBuffer[i] = BlankBar[i];
         }
     }
-    for (INT8U i = 0; i < 2; i++) {
+    for (INT8U i = 0; i < 6; i++) {
         LCD_setCoord(page + i, column);
         LCD_writeData(&imgBuffer[12 * i], 12);
     }
