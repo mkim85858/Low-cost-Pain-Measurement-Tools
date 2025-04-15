@@ -22,7 +22,7 @@ def create_new_csv(file_index):
     print(f"Switching to new file: {filename}")
     file = open(filename, mode='w', newline='')
     writer = csv.writer(file)
-    writer.writerow(['Time (s)', 'Pressure (hPa)'])
+    writer.writerow(['Time (ds)', 'Pressure (hPa)'])
     return writer, file
 
 def main():
@@ -48,11 +48,14 @@ def main():
                     data2 = buffer[1]
                     time = buffer[2]
                     del buffer[:3]  # remove processed bytes
-                    if (data1 == 0x00 and data2 == 0x00 and time == 0x00):
-                        file.close()
-                        file_index += 1
-                        writer, file = create_new_csv(file_index)
-                        continue
+                    if (data1 == 0x00 and data2 == 0x00):
+                        if (time == 0x00):
+                            file.close()
+                            file_index += 1
+                            writer, file = create_new_csv(file_index)
+                            continue
+                        else:
+                            time = "NaN"
                     pressure = (data1 << 8) | data2
                     print(f"Received -> Time: {time}, Pressure: {pressure}")
                     writer.writerow([time, pressure])

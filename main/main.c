@@ -37,8 +37,8 @@
 ********************************************************************************
 */
 /* Insert file scope variable & tables here */
-static INT16U basePressure = 900;
-static INT16U maxPressure = 1000;
+static INT16U basePressure = 0;
+static INT16U maxPressure = 0;
 static INT8U time = 0;
 
 static SemaphoreHandle_t semaphoreHandle = NULL;
@@ -67,6 +67,8 @@ void app_main(void) {
     I2C_Init();
     Sensor_Init();
     LCD_Init();
+    basePressure = Sensor_ReadPressure();
+    maxPressure = basePressure + 1000;
     Bluetooth_Init();
     semaphoreHandle = xSemaphoreCreateBinary();
     Button_Init(buttonInterrupt);
@@ -85,7 +87,7 @@ void buttonTask(void* arg) {
             while (xSemaphoreTake(semaphoreHandle, 0) == pdTRUE) {}
             LCD_ClearScreen();
         }
-        // Read pressure and send via bluetooth every 0.2 seconds
+        // Read pressure and send via bluetooth every 0.1 seconds
         while (taskActive) {
             INT16U pressure = Sensor_ReadPressure();
             Bluetooth_SendPressureTime(pressure, time);
@@ -98,7 +100,7 @@ void buttonTask(void* arg) {
                     LCD_WriteProgressBar(1, (12 * i) + 4, 0);
                 }
             }
-            vTaskDelay(pdMS_TO_TICKS(200));         // Send data every 0.5 seconds (for now)
+            vTaskDelay(pdMS_TO_TICKS(100));         // Send data every 0.1 seconds (for now)
             // When the task ends (stops reading), write logo and send 0s via bluetooth to signal end
             if (xSemaphoreTake(semaphoreHandle, 0) == pdTRUE) {
                 LCD_WriteLogo();
