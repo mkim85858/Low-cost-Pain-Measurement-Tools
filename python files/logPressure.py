@@ -22,7 +22,7 @@ def create_new_csv(file_index):
     print(f"Switching to new file: {filename}")
     file = open(filename, mode='w', newline='')
     writer = csv.writer(file)
-    writer.writerow(['Time (ds)', 'Pressure (hPa)'])
+    writer.writerow(['Time (0.5 ds)', 'Pressure (hPa)'])
     return writer, file
 
 def main():

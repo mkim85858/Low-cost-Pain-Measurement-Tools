@@ -143,6 +143,28 @@ void LCD_WriteStr(char *str, INT8U page, INT8U column) {
 }
 /**
 ********************************************************************************
+* @brief    LCD Write Number
+* @param    number : number to write
+            page : page to write number
+            column : column to write number
+* @return   none
+* @remark   Used to write a number to LCD
+********************************************************************************
+*/
+void LCD_WriteNum(INT16U number, INT8U page, INT8U column) {
+    char charBuffer[5];
+    snprintf(charBuffer, "%d", number);
+    if (number > 999) {
+        LCD_WriteStr(charBuffer, page, column);
+    }
+    else {
+        LCD_WriteChar(' ', page, column);
+        LCD_WriteStr(charBuffer, page, column + 12);
+    }
+}
+
+/**
+********************************************************************************
 * @brief    LCD Write Logo
 * @param    none
 * @return   none

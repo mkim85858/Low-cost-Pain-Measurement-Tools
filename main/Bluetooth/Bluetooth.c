@@ -42,6 +42,7 @@
 ********************************************************************************
 */
 /* Insert file scope variable & tables here */
+static INT32U sppHandle = 0;
 static BOOLEAN is_connected = false;
 static SemaphoreHandle_t semaphoreHandle = NULL;
 /*
@@ -104,8 +105,8 @@ void Bluetooth_Init(void) {
 */
 void Bluetooth_SendToPC(INT8U *data, INT16U len) {
     // Check if there's an active connection
-    if (is_connected) {
-        esp_spp_write(129, len, data);
+    if (is_connected && sppHandle) {
+        esp_spp_write(sppHandle, len, data);
     } 
 }
 
@@ -119,11 +120,11 @@ void Bluetooth_SendToPC(INT8U *data, INT16U len) {
 ********************************************************************************
 */
 void Bluetooth_SendPressureTime(INT16U pressure, INT8U time) {
-    INT8U data1 = (pressure >> 8) & 0xFF;
-    INT8U data2 = (pressure & 0xFF);
-    Bluetooth_SendToPC(&data1, sizeof(data1));
-    Bluetooth_SendToPC(&data2, sizeof(data2));
-    Bluetooth_SendToPC(&time, sizeof(time));
+    INT8U data[3];
+    data[0] = (pressure >> 8) & 0xFF;
+    data[1] = (pressure & 0xFF);
+    data[2] = time;
+    Bluetooth_SendToPC(data, sizeof(data));
 }
 /*
 ********************************************************************************
@@ -147,12 +148,14 @@ static void Bluetooth_sppcb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
             break;
 
         case ESP_SPP_SRV_OPEN_EVT:
+            sppHandle = param->srv_open.handle;
             is_connected = true;
             if (semaphoreHandle) {
                 xSemaphoreGive(semaphoreHandle);
             }
             break;
         case ESP_SPP_CLOSE_EVT:
+            sppHandle = 0;
             is_connected = false;
             break;
         default:

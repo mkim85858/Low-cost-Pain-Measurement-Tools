@@ -25,11 +25,13 @@
 
 #define I2C_DEVICE_ADDRESS                  0x5D
 #define I2C_DEVICE_CTRLREG1                 0x10
+#define I2C_DEVICE_CTRLREG2                 0x11
 #define I2C_DEVICE_HREG                     0x2A
 #define I2C_DEVICE_LREG                     0x29
 #define I2C_DEVICE_XLREG                    0x28
 
-#define I2C_DEVICE_DATARATE                 0x18
+#define I2C_DEVICE_DATARATE                 0x28
+#define I2C_DEVICE_FSMODE                   0x40
 /*
 ********************************************************************************
 *                       LOCAL DATA TYPES & STRUCTURES
@@ -65,6 +67,7 @@ static void Sensor_writeReg(INT8U data, INT8U reg);
 */
 void Sensor_Init(void) {
     Sensor_writeReg(I2C_DEVICE_DATARATE, I2C_DEVICE_CTRLREG1);
+    Sensor_writeReg(I2C_DEVICE_FSMODE, I2C_DEVICE_CTRLREG2);
 }
 
 /**
@@ -80,7 +83,7 @@ INT16U Sensor_ReadPressure(void) {
     total |= Sensor_readReg(I2C_DEVICE_HREG) << 16;
     total |= Sensor_readReg(I2C_DEVICE_LREG) << 8;
     total |= Sensor_readReg(I2C_DEVICE_XLREG);
-    total /= 4096;
+    total /= 2048;
     return total;
 }
 

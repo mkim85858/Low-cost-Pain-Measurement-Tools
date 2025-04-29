@@ -7,10 +7,10 @@
 ********************************************************************************
 */
 /* Insert #define here */
-#define LPS28_I2C_SDA               GPIO_NUM_21 // blue
-#define LPS28_I2C_SCL               GPIO_NUM_22 // yellow
+#define I2C_SDA                     GPIO_NUM_23 // pink
+#define I2C_SCL                     GPIO_NUM_26 // blue
 
-#define BUTTON_PIN                  GPIO_NUM_25
+#define BUTTON_PIN                  GPIO_NUM_18 // orange
     
 /*
 *

@@ -58,8 +58,8 @@
 void I2C_Init(void) {
     i2c_config_t i2cconf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = LPS28_I2C_SDA,
-        .scl_io_num = LPS28_I2C_SCL,
+        .sda_io_num = I2C_SDA,
+        .scl_io_num = I2C_SCL,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = 100000,
