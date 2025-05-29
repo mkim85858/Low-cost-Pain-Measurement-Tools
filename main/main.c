@@ -11,7 +11,7 @@
 
 #include "Common/I2CDrv.c"
 #include "PSensor/PSensorDrv.h"
-#include "LCD/LCDDrv.h"
+#include "OLED/OLEDDrv.h"
 #include "Bluetooth/Bluetooth.h"
 #include "Button/ButtonDrv.h"
 /*
@@ -68,14 +68,15 @@ static void buttonInterrupt(void* arg);
 void app_main(void) {
     I2C_Init();
     Sensor_Init();
-    LCD_Init();
+    OLED_Init();
+    OLED_WaitingForConnection();
     basePressure = Sensor_ReadPressure();
     maxPressure = basePressure + 1000;
     Bluetooth_Init();
     semaphoreHandle = xSemaphoreCreateBinary();
     Button_Init(buttonInterrupt);
     vTaskDelay(pdMS_TO_TICKS(10));
-    LCD_WriteLogo();
+    OLED_WriteLogo();
 
     xTaskCreate(buttonTask, "buttonTask", 4096, NULL, 10, NULL);
 }
@@ -83,11 +84,11 @@ void app_main(void) {
 // Task that waits reads pressure data and sends it to PC via Bluetooth
 void buttonTask(void* arg) {
     while (1) {
-        // When the task starts (starts reading), flush all other semaphores and clear LCD.
+        // When the task starts (starts reading), flush all other semaphores and clear OLED.
         if (xSemaphoreTake(semaphoreHandle, portMAX_DELAY) == pdTRUE) {
             taskActive = true;
             while (xSemaphoreTake(semaphoreHandle, 0) == pdTRUE) {}
-            LCD_ClearScreen();
+            OLED_ClearScreen();
         }
         // Read pressure and send via bluetooth every 0.05 seconds
         while (taskActive) {
@@ -96,15 +97,16 @@ void buttonTask(void* arg) {
             // Calculating how many progress bars to draw
             for (int i = 0; i < 10; i++) {
                 if ((pressure - basePressure) * 10 > (i * (maxPressure - basePressure))) {
-                    LCD_WriteProgressBar(1, (12 * i) + 4, 1);
+                    OLED_WriteProgressBar(1, (12 * i) + 4, 1);
                 }
                 else {
-                    LCD_WriteProgressBar(1, (12 * i) + 4, 0);
+                    OLED_WriteProgressBar(1, (12 * i) + 4, 0);
                 }
-            }            vTaskDelay(pdMS_TO_TICKS(50));         // Send data every 0.05 seconds (for now)
+            }
+            vTaskDelay(pdMS_TO_TICKS(50));         // Send data every 0.05 seconds (for now)
             // When the task ends (stops reading), write logo and send 0s via bluetooth to signal end
             if (xSemaphoreTake(semaphoreHandle, 0) == pdTRUE) {
-                LCD_WriteLogo();
+                OLED_WriteLogo();
                 taskActive = false;
                 Bluetooth_SendPressureTime(0, 0);
                 time = 0;

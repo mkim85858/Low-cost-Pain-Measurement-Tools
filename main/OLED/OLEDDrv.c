@@ -8,7 +8,7 @@
 
 #include "Globals.h"
 #include "HardwareConfig.h"
-#include "LCDDrv.h"
+#include "OLEDDrv.h"
 #include "Fonts.h"
 /*
 ********************************************************************************
@@ -58,9 +58,11 @@
 *                       LOCAL FUNCTION PROTOTYPES
 ********************************************************************************
 */
-static void LCD_writeCommand(INT8U* commands, INT8U length);
-static void LCD_writeData(INT8U* data, INT8U length);
-static void LCD_setCoord(INT8U page, INT8U col);
+static void OLED_writeChar(INT8U charCode, INT8U page, INT16U column);
+static void OLED_writeStr(char *str, INT8U page, INT8U column);
+static void OLED_writeCommand(INT8U* commands, INT8U length);
+static void OLED_writeData(INT8U* data, INT8U length);
+static void OLED_setCoord(INT8U page, INT8U col);
 /*
 ********************************************************************************
 *                       GLOBAL(EXPORTED) FUNCTIONS
@@ -69,13 +71,13 @@ static void LCD_setCoord(INT8U page, INT8U col);
 /* Insert global functions here */
 /**
 ********************************************************************************
-* @brief    LCD Init
+* @brief    OLED Init
 * @param    none
 * @return   none
-* @remark   Used to send initial commands to LCD
+* @remark   Used to send initial commands to OLED
 ********************************************************************************
 */
-void LCD_Init(void) {
+void OLED_Init(void) {
     INT8U cmd[20] = {I2C_DEVICE_MULTIPLEX_RATIO, 0x3F, 
                      I2C_DEVICE_DISPLAY_OFFSET, 0x00, 
                      I2C_DEVICE_DISPLAY_START_LINE, 
@@ -89,102 +91,51 @@ void LCD_Init(void) {
                      I2C_DEVICE_SET_DISPLAY_CLOCK, 0x80,
                      I2C_DEVICE_CHARGE_BUMP, 0x14,
                      I2C_DEVICE_DISPLAY_ON};
-    LCD_writeCommand(cmd, 20);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    LCD_ClearScreen();
-    vTaskDelay(pdMS_TO_TICKS(10));
-    LCD_WriteStr("WAITING", 0, 22);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    LCD_WriteStr("FOR", 2, 46);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    LCD_WriteStr("CONNECTION", 4, 0);
-}
-/**
-********************************************************************************
-* @brief    LCD Write Character
-* @param    charCode : character to write
-            page : page to write character
-            column : column to write character
-* @return   none
-* @remark   Used to write a single character to LCD
-********************************************************************************
-*/
-void LCD_WriteChar(INT8U charCode, INT8U page, INT16U column) {
-    INT8U charBuffer[24] = {0};
-    for (INT8U i = 0; i < 24; i++) {
-        charBuffer[i] = Font[(charCode - 32) * 24 + i];
-    }
-    for (INT8U i = 0; i < 2; i++) {
-        LCD_setCoord(page + i, column);
-        LCD_writeData(&charBuffer[12 * i], 12);
-    }
-}
-/**
-********************************************************************************
-* @brief    LCD Write Character
-* @param    str : pointer to characters to write
-            page : page to write string
-            column : column to write string
-* @return   none
-* @remark   Used to write a single character to LCD
-********************************************************************************
-*/
-void LCD_WriteStr(char *str, INT8U page, INT8U column) {
-    while(*str) {
-            if (127 < (column + 12)) {
-            if (page == 6) break;
-            page += 2;
-            column = 0;
-        }
-        LCD_WriteChar(*str, page, column);
-        column += 12;
-        str++;
-    }
-}
-/**
-********************************************************************************
-* @brief    LCD Write Number
-* @param    number : number to write
-            page : page to write number
-            column : column to write number
-* @return   none
-* @remark   Used to write a number to LCD
-********************************************************************************
-*/
-void LCD_WriteNum(INT16U number, INT8U page, INT8U column) {
-    char charBuffer[5];
-    snprintf(charBuffer, "%d", number);
-    if (number > 999) {
-        LCD_WriteStr(charBuffer, page, column);
-    }
-    else {
-        LCD_WriteChar(' ', page, column);
-        LCD_WriteStr(charBuffer, page, column + 12);
-    }
+    OLED_writeCommand(cmd, 20);
 }
 
 /**
 ********************************************************************************
-* @brief    LCD Write Logo
+* @brief    OLED Waiting For Connection
+* @param    none
+* @return   none
+* @remark   Used to write WaitingForConnection page
+********************************************************************************
+*/
+void OLED_WaitingForConnection(void) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_ClearScreen();
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("WAITING", 0, 22);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("FOR", 2, 46);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("CONNECTION", 4, 0);
+}
+
+/**
+********************************************************************************
+* @brief    OLED Write Logo
 * @param    none
 * @return   none
 * @remark   Used to write Georgia Tech's logo
 ********************************************************************************
 */
-void LCD_WriteLogo(void) 
+void OLED_WriteLogo(void) 
 {
     INT8U ImgBuffer[1024] = {0};
     for (INT16U i = 0; i < 1024; i++) {
         ImgBuffer[i] = GTLogo[i];
     }
     for (INT8U i = 0; i < 8; i++) {
-        LCD_setCoord(0 + i, 0);
-        LCD_writeData(&ImgBuffer[128 * i], 128);
+        OLED_setCoord(0 + i, 0);
+        OLED_writeData(&ImgBuffer[128 * i], 128);
     }
 }
+
 /**
 ********************************************************************************
-* @brief    LCD Write Progress Bar
+* @brief    OLED Write Progress Bar
 * @param    page : page to write progress bar (row)
             column : column to write progress bar
             type : if 1, write full bar, if 0, write blank bar
@@ -192,7 +143,7 @@ void LCD_WriteLogo(void)
 * @remark   Used to write a full or blank progress bar
 ********************************************************************************
 */
-void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
+void OLED_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
     INT8U imgBuffer[72] = {0};
     for (INT16U i = 0; i < 72; i++) {
         if (type) {
@@ -203,38 +154,25 @@ void LCD_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
         }
     }
     for (INT8U i = 0; i < 6; i++) {
-        LCD_setCoord(page + i, column);
-        LCD_writeData(&imgBuffer[12 * i], 12);
+        OLED_setCoord(page + i, column);
+        OLED_writeData(&imgBuffer[12 * i], 12);
     }
 }
+
 /**
 ********************************************************************************
-* @brief    LCD Clear Page
-* @param    page : page (row) to clear
-* @return   none
-* @remark   Used to clear a page on the LCD
-********************************************************************************
-*/
-void LCD_ClearPage(INT8U page) {
-    INT8U buffer[128] = {0};
-    INT8U cmd[] = {0x00, 0x10, 0xB0 + page};
-    LCD_writeCommand(cmd, 3);
-    LCD_writeData(buffer, 128);
-}
-/**
-********************************************************************************
-* @brief    LCD Clear Screen
+* @brief    OLED Clear Screen
 * @param    none
 * @return   none
-* @remark   Used to clear the entire screen on the LCD
+* @remark   Used to clear the entire screen on the OLED
 ********************************************************************************
 */
-void LCD_ClearScreen(void) {
+void OLED_ClearScreen(void) {
     INT8U buffer[128] = {0};
     for (INT8U i = 0; i < 8; i++) {
         INT8U cmd[] = {0x00, 0x10, 0xB0 + i};
-        LCD_writeCommand(cmd, 3);
-        LCD_writeData(buffer, 128);
+        OLED_writeCommand(cmd, 3);
+        OLED_writeData(buffer, 128);
     }
 }
 
@@ -245,8 +183,34 @@ void LCD_ClearScreen(void) {
 */
 /* Insert local functions here */
 
-// writing an array of commands to the LCD
-void LCD_writeCommand(INT8U* commands, INT8U length) {
+// writing a single character to OLED
+void OLED_writeChar(INT8U charCode, INT8U page, INT16U column) {
+    INT8U charBuffer[24] = {0};
+    for (INT8U i = 0; i < 24; i++) {
+        charBuffer[i] = Font[(charCode - 32) * 24 + i];
+    }
+    for (INT8U i = 0; i < 2; i++) {
+        OLED_setCoord(page + i, column);
+        OLED_writeData(&charBuffer[12 * i], 12);
+    }
+}
+
+// writing a string to OLED
+void OLED_writeStr(char *str, INT8U page, INT8U column) {
+    while(*str) {
+            if (127 < (column + 12)) {
+            if (page == 6) break;
+            page += 2;
+            column = 0;
+        }
+        OLED_writeChar(*str, page, column);
+        column += 12;
+        str++;
+    }
+}
+
+// writing an array of commands to the OLED
+void OLED_writeCommand(INT8U* commands, INT8U length) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (I2C_DEVICE_ADDRESS << 1) | I2C_MASTER_WRITE, true);
@@ -258,8 +222,8 @@ void LCD_writeCommand(INT8U* commands, INT8U length) {
     i2c_cmd_link_delete(cmd);
 }
 
-// writing an array of data to the LCD
-void LCD_writeData(INT8U* data, INT8U length) {
+// writing an array of data to the OLED
+void OLED_writeData(INT8U* data, INT8U length) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (I2C_DEVICE_ADDRESS << 1) | I2C_MASTER_WRITE, true);
@@ -271,8 +235,8 @@ void LCD_writeData(INT8U* data, INT8U length) {
     i2c_cmd_link_delete(cmd);
 }
 
-// setting the coordinates to start writing on LCD
-void LCD_setCoord(INT8U page, INT8U col) {
+// setting the coordinates to start writing on OLED
+void OLED_setCoord(INT8U page, INT8U col) {
     INT8U cmd[3] = {(0xB0 + page), (col & 0x0F), (0x10 | ((col >> 4) & 0x0F))};
-    LCD_writeCommand(cmd, 3);
+    OLED_writeCommand(cmd, 3);
 }
