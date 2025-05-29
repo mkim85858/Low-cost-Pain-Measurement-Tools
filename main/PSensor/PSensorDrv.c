@@ -80,9 +80,9 @@ void Sensor_Init(void) {
 */
 INT16U Sensor_ReadPressure(void) {
     INT32U total = 0;
-    total |= Sensor_readReg(I2C_DEVICE_HREG) << 16;
-    total |= Sensor_readReg(I2C_DEVICE_LREG) << 8;
-    total |= Sensor_readReg(I2C_DEVICE_XLREG);
+    total |= (Sensor_readReg(I2C_DEVICE_HREG) << 16) |
+             (Sensor_readReg(I2C_DEVICE_LREG) << 8) |
+             Sensor_readReg(I2C_DEVICE_XLREG);
     total /= 2048;
     return total;
 }

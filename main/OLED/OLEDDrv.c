@@ -121,15 +121,10 @@ void OLED_WaitingForConnection(void) {
 * @remark   Used to write Georgia Tech's logo
 ********************************************************************************
 */
-void OLED_WriteLogo(void) 
-{
-    INT8U ImgBuffer[1024] = {0};
-    for (INT16U i = 0; i < 1024; i++) {
-        ImgBuffer[i] = GTLogo[i];
-    }
+void OLED_WriteLogo(void) {
     for (INT8U i = 0; i < 8; i++) {
         OLED_setCoord(0 + i, 0);
-        OLED_writeData(&ImgBuffer[128 * i], 128);
+        OLED_writeData((INT8U*)&GTLogo[128 * i], 128);
     }
 }
 
@@ -144,18 +139,10 @@ void OLED_WriteLogo(void)
 ********************************************************************************
 */
 void OLED_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
-    INT8U imgBuffer[72] = {0};
-    for (INT16U i = 0; i < 72; i++) {
-        if (type) {
-            imgBuffer[i] = ProgressBar[i];
-        }
-        else {
-            imgBuffer[i] = BlankBar[i];
-        }
-    }
+    const INT8U* sourceArray = type ? ProgressBar : BlankBar;
     for (INT8U i = 0; i < 6; i++) {
         OLED_setCoord(page + i, column);
-        OLED_writeData(&imgBuffer[12 * i], 12);
+        OLED_writeData((INT8U*)&sourceArray[12 * i], 12);
     }
 }
 
@@ -185,21 +172,22 @@ void OLED_ClearScreen(void) {
 
 // writing a single character to OLED
 void OLED_writeChar(INT8U charCode, INT8U page, INT16U column) {
-    INT8U charBuffer[24] = {0};
-    for (INT8U i = 0; i < 24; i++) {
-        charBuffer[i] = Font[(charCode - 32) * 24 + i];
-    }
-    for (INT8U i = 0; i < 2; i++) {
-        OLED_setCoord(page + i, column);
-        OLED_writeData(&charBuffer[12 * i], 12);
-    }
+    INT8U* fontCharStart = (INT8U*)&Font[(charCode - 32) * 24];
+
+    OLED_setCoord(page, column);
+    OLED_writeData(fontCharStart, 12);
+    
+    OLED_setCoord(page + 1, column);
+    OLED_writeData(fontCharStart + 12, 12);
 }
 
 // writing a string to OLED
 void OLED_writeStr(char *str, INT8U page, INT8U column) {
     while(*str) {
-            if (127 < (column + 12)) {
-            if (page == 6) break;
+        if (127 < (column + 12)) {
+            if (page == 6) {
+                break;
+            }
             page += 2;
             column = 0;
         }
