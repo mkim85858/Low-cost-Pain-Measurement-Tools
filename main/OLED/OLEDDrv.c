@@ -58,6 +58,7 @@
 *                       LOCAL FUNCTION PROTOTYPES
 ********************************************************************************
 */
+static void OLED_waitingForConnection(void);
 static void OLED_writeChar(INT8U charCode, INT8U page, INT16U column);
 static void OLED_writeStr(char *str, INT8U page, INT8U column);
 static void OLED_writeCommand(INT8U* commands, INT8U length);
@@ -92,25 +93,7 @@ void OLED_Init(void) {
                      I2C_DEVICE_CHARGE_BUMP, 0x14,
                      I2C_DEVICE_DISPLAY_ON};
     OLED_writeCommand(cmd, 20);
-}
-
-/**
-********************************************************************************
-* @brief    OLED Waiting For Connection
-* @param    none
-* @return   none
-* @remark   Used to write WaitingForConnection page
-********************************************************************************
-*/
-void OLED_WaitingForConnection(void) {
-    vTaskDelay(pdMS_TO_TICKS(10));
-    OLED_ClearScreen();
-    vTaskDelay(pdMS_TO_TICKS(10));
-    OLED_writeStr("WAITING", 0, 22);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    OLED_writeStr("FOR", 2, 46);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    OLED_writeStr("CONNECTION", 4, 0);
+    OLED_waitingForConnection();
 }
 
 /**
@@ -124,7 +107,7 @@ void OLED_WaitingForConnection(void) {
 void OLED_WriteLogo(void) {
     for (INT8U i = 0; i < 8; i++) {
         OLED_setCoord(0 + i, 0);
-        OLED_writeData((INT8U*)&GTLogo[128 * i], 128);
+        OLED_writeData(&GTLogo[128 * i], 128);
     }
 }
 
@@ -139,10 +122,10 @@ void OLED_WriteLogo(void) {
 ********************************************************************************
 */
 void OLED_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type) {
-    const INT8U* sourceArray = type ? ProgressBar : BlankBar;
+    INT8U* sourceArray = type ? ProgressBar : BlankBar;
     for (INT8U i = 0; i < 6; i++) {
         OLED_setCoord(page + i, column);
-        OLED_writeData((INT8U*)&sourceArray[12 * i], 12);
+        OLED_writeData(&sourceArray[12 * i], 12);
     }
 }
 
@@ -170,9 +153,21 @@ void OLED_ClearScreen(void) {
 */
 /* Insert local functions here */
 
+// drawing the waitingForConnection page
+void OLED_waitingForConnection(void) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_ClearScreen();
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("WAITING", 0, 22);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("FOR", 2, 46);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    OLED_writeStr("CONNECTION", 4, 0);
+}
+
 // writing a single character to OLED
 void OLED_writeChar(INT8U charCode, INT8U page, INT16U column) {
-    INT8U* fontCharStart = (INT8U*)&Font[(charCode - 32) * 24];
+    INT8U* fontCharStart = &Font[(charCode - 32) * 24];
 
     OLED_setCoord(page, column);
     OLED_writeData(fontCharStart, 12);

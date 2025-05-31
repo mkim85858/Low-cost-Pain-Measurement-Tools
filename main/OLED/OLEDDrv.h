@@ -29,7 +29,6 @@
 */
 /* Insert global function prototypes here */
 extern void OLED_Init(void);
-extern void OLED_WaitingForConnection(void);
 extern void OLED_WriteLogo(void);
 extern void OLED_WriteProgressBar(INT8U page, INT16U column, BOOLEAN type);
 extern void OLED_ClearScreen(void);
